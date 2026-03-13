@@ -33,9 +33,14 @@
         :shortcut-selected-index="shortcutSelectedIndex"
         :shortcuts="shortcutsRange"
         type="daterange"
-        use-shortcut-text
-        @change="handleChange"
-        @shortcut-change="handleShortcutChange" />
+        :use-shortcut-text="shortcutSelectedIndex >= 0"
+        @change="handleChange" />
+      <!-- 隐藏的测量元素，用于动态计算日期文本宽度 -->
+      <span
+        ref="measureRef"
+        class="date-measure-span">
+        {{ measureText }}
+      </span>
     </span>
     <audit-icon
       v-if="props.removable"
@@ -48,6 +53,7 @@
   import dayjs from 'dayjs';
   import {
     computed,
+    nextTick,
     onBeforeUnmount,
     onMounted,
     ref,
@@ -81,7 +87,9 @@
 
   const tagRef = ref<HTMLElement>();
   const datePickerRef = ref();
+  const measureRef = ref<HTMLSpanElement>();
   const isPanelOpen = ref(false);
+  const measureText = ref('');
 
   // bk-date-picker 的 open prop：
   // - null: 由组件自身管理显隐（默认行为）
@@ -99,15 +107,8 @@
     isPanelOpen.value = !isPanelOpen.value;
   };
 
-  // 快捷选项变更时，仅更新值不关闭面板
-  const handleShortcutChange = (shortcut: any) => {
-    if (shortcut && typeof shortcut.value === 'function') {
-      const range = shortcut.value();
-      if (Array.isArray(range) && range.length >= 2) {
-        handleChange(range);
-      }
-    }
-  };
+  // 快捷选项 text 到 origin 值的映射
+  const shortcutTextToOriginMap: Record<string, string> = {};
 
   // 点击外部区域关闭面板
   const handleDocumentClick = (e: MouseEvent) => {
@@ -123,10 +124,6 @@
     // 其他区域 → 关闭面板
     isPanelOpen.value = false;
   };
-
-  onMounted(() => {
-    document.addEventListener('click', handleDocumentClick, true);
-  });
 
   onBeforeUnmount(() => {
     document.removeEventListener('click', handleDocumentClick, true);
@@ -220,6 +217,26 @@
     'now-12M': 7,
   };
 
+  // 索引到 origin 值的反向映射
+  const indexToOriginMap: Record<number, string> = {
+    0: 'now-1d',
+    1: 'now-3d',
+    2: 'now-7d',
+    3: 'now-14d',
+    4: 'now-1M',
+    5: 'now-3M',
+    6: 'now-6M',
+    7: 'now-12M',
+  };
+
+  // 初始化 快捷选项 text → origin 值 的映射
+  shortcutsRange.forEach((item, idx) => {
+    const origin = indexToOriginMap[idx];
+    if (origin) {
+      shortcutTextToOriginMap[item.text] = origin;
+    }
+  });
+
   // 根据 datetime_origin 确定默认选中的快捷索引
   const shortcutSelectedIndex = computed(() => {
     const origin = props.searchModel.datetime_origin;
@@ -227,12 +244,25 @@
       const idx = shortcutOriginMap[origin[0]];
       if (idx !== undefined) return idx;
     }
-    // 默认选中"近6月"
-    return 5;
+    // 当 datetime_origin 不匹配任何快捷选项时（如后端返回的具体日期），返回 -1 表示无选中
+    return -1;
   });
 
+  // 将字符串日期转成 Date 对象，确保 bk-date-picker 能正确回显
+  const parseDateValue = (val: any) => {
+    if (!val || !Array.isArray(val) || val.length < 2) return [];
+    return val.map((item: any) => {
+      if (item instanceof Date) return item;
+      if (typeof item === 'string' || typeof item === 'number') {
+        const d = new Date(item);
+        return isNaN(d.getTime()) ? item : d;
+      }
+      return item;
+    });
+  };
+
   // 本地值（日期范围数组）
-  const localValue = ref<any>(props.tag.value || []);
+  const localValue = ref<any>(parseDateValue(props.tag.value));
 
   // 日期变更
   const handleChange = (value: any) => {
@@ -249,9 +279,58 @@
   // 同步外部值变化
   watch(() => props.tag.value, (val) => {
     if (val) {
-      localValue.value = val;
+      localValue.value = parseDateValue(val);
     }
   }, { deep: true });
+
+  // 同步 searchModel.datetime 变化（后端返回具体日期时触发）
+  watch(() => props.searchModel.datetime, (val) => {
+    if (val && Array.isArray(val) && val.length >= 2) {
+      localValue.value = parseDateValue(val);
+    }
+  }, { deep: true });
+
+  // 动态调整 input 宽度以匹配显示文本，同时收缩外层容器消除空白
+  const updateEditorWidth = async () => {
+    await nextTick();
+    // 等待 DOM 更新后再获取 input 显示的文本
+    setTimeout(() => {
+      const pickerEl = datePickerRef.value?.$el || datePickerRef.value;
+      if (!pickerEl) return;
+      const editorInput = pickerEl.querySelector('.bk-date-picker-editor') as HTMLInputElement;
+      if (!editorInput) return;
+      const displayText = editorInput.value || '';
+      measureText.value = displayText;
+      nextTick(() => {
+        if (measureRef.value) {
+          const textWidth = measureRef.value.scrollWidth + 16; // 加上内边距余量
+          const finalWidth = `${Math.max(40, textWidth)}px`;
+          editorInput.style.width = finalWidth;
+          // 同时收缩外层 .bk-date-picker-rel 容器，消除多余空白
+          const relEl = pickerEl.querySelector('.bk-date-picker-rel') as HTMLElement;
+          if (relEl) {
+            relEl.style.width = finalWidth;
+          }
+        }
+      });
+    }, 50);
+  };
+
+  // 值变化时重新计算宽度
+  watch(localValue, () => {
+    updateEditorWidth();
+  }, { deep: true });
+
+  // 快捷选项选中变化时重新计算宽度
+  watch(shortcutSelectedIndex, () => {
+    updateEditorWidth();
+  });
+
+  // 组件挂载后首次计算宽度
+  onMounted(() => {
+    document.addEventListener('click', handleDocumentClick, true);
+    updateEditorWidth();
+  });
 </script>
 <style lang="postcss" scoped>
   .condition-tag-date-item {
@@ -262,19 +341,25 @@
       transition: background .15s;
 
       :deep(.bk-date-picker) {
+        display: inline-flex;
         width: auto;
         background: transparent;
         border: none;
 
         .bk-date-picker-rel {
+          display: inline-flex;
+          width: auto;
+
           /* 隐藏日历图标容器 */
           .icon-wrapper {
             display: none;
           }
 
-          /* 去掉为图标预留的左侧空间，调整尺寸 */
+          /* 去掉为图标预留的左侧空间，调整尺寸，宽度根据内容自适应 */
           .bk-date-picker-editor {
+            width: auto;
             height: 22px;
+            min-width: 40px;
             padding: 4px;
             font-size: 12px;
             font-weight: 700;
@@ -313,6 +398,23 @@
           }
         }
       }
+    }
+
+    /* 隐藏的测量 span，与 input 保持相同字体样式，用于计算文本宽度 */
+    .date-measure-span {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 0;
+      padding: 0 4px;
+      overflow: hidden;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 22px;
+      white-space: pre;
+      pointer-events: none;
+      visibility: hidden;
     }
   }
 </style>
