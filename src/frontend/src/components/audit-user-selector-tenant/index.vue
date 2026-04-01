@@ -23,6 +23,7 @@
     :api-base-url="apiBaseUrl"
     :auto-focus="autoFocus"
     :disabled="isDisabled"
+    has-avatar
     :multiple="multiple"
     :render-tag="renderTag"
     :tenant-id="tenantId"
