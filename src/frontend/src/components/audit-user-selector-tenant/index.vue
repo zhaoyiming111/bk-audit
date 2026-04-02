@@ -22,6 +22,7 @@
     :allow-create="allowCreate"
     :api-base-url="apiBaseUrl"
     :auto-focus="autoFocus"
+    :avatar-base-url="apiBaseUrl"
     :disabled="isDisabled"
     :has-avatar="hasAvatar"
     :multiple="multiple"
