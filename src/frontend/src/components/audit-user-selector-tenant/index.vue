@@ -23,7 +23,7 @@
     :api-base-url="apiBaseUrl"
     :auto-focus="autoFocus"
     :disabled="isDisabled"
-    has-avatar
+    :has-avatar="hasAvatar"
     :multiple="multiple"
     :render-tag="renderTag"
     :tenant-id="tenantId"
@@ -52,6 +52,7 @@
     // needRecord?: boolean;
     isDisabled?: boolean;
     autoFocus?: boolean;
+    hasAvatar?: boolean;
     userGroup?: Array<{ id: string; name: string; }>;
     userGroupName?: string;
   }
@@ -70,6 +71,7 @@
     // needRecord: false,
     isDisabled: false,
     autoFocus: true,
+    hasAvatar: true,
     userGroup: () => [],
     userGroupName: '用户组',
   });

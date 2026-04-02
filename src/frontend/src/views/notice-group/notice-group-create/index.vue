@@ -48,6 +48,7 @@
             <audit-user-selector-tenant
               class="form-item-common"
               :collapse-tags="collapseTags"
+              :has-avatar="hasAvatar"
               :model-value="formData.group_member"
               :multiple="multiple"
               :placeholder="t('请输入用户名，或通过输入$使用变量')"
@@ -159,6 +160,7 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
   const isEditMode = ref(false);
   const multiple = true;
+  const hasAvatar = true;
   const formData = ref({
     group_id: 0,
     group_name: '',
