@@ -26,7 +26,6 @@
     :disabled="isDisabled"
     :has-avatar="hasAvatar"
     :multiple="multiple"
-    :render-tag="renderTag"
     :tenant-id="tenantId"
     :user-group="userGroup"
     :user-group-name="userGroupName"
@@ -80,19 +79,6 @@
   const emit = defineEmits<Emits>();
   const userSelectorRef = ref();
   const localValue = ref<Props['modelValue']>([]);
-
-  // 获取用户头像URL
-  const getAvatarUrl = (userInfo: any) => {
-    const loginName = userInfo.login_name || userInfo.bk_username || userInfo.id;
-    if (!loginName || !avatarBaseUrl.value) return '';
-    return `${avatarBaseUrl.value}${loginName}.png?default_when_absent=true`;
-  };
-
-  // 自定义标签渲染
-  const renderTag = (createElement:any, userInfo:any) => createElement('span', { class: 'custom-tag' }, [
-    createElement('img', { src: userInfo.logo || getAvatarUrl(userInfo), class: 'avatar' }),
-    userInfo.display_name,
-  ]);
 
   // 从sessionStorage中获取配置
   const getConfig = () => {
