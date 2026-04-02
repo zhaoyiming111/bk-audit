@@ -22,7 +22,7 @@
     :allow-create="allowCreate"
     :api-base-url="apiBaseUrl"
     :auto-focus="autoFocus"
-    :avatar-base-url="apiBaseUrl"
+    :avatar-base-url="avatarBaseUrl"
     :disabled="isDisabled"
     :has-avatar="hasAvatar"
     :multiple="multiple"
@@ -108,6 +108,14 @@
       return config?.tenant_config?.BK_USER_WEB_APIGW_URL;
     }
     return '';
+  });
+
+  // 计算avatarBaseUrl
+  // 组件内部拼接头像URL格式为: `${avatarBaseUrl}${loginName}.png`，需要确保末尾有 /
+  const avatarBaseUrl = computed(() => {
+    const base = apiBaseUrl.value;
+    if (!base) return '';
+    return base.endsWith('/') ? base : `${base}/`;
   });
 
   // 获取租户ID
