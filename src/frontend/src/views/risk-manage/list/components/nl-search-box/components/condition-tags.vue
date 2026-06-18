@@ -106,6 +106,8 @@
   import { InfoBox } from 'bkui-vue';
   import {
     computed,
+    nextTick,
+    onBeforeUnmount,
     ref,
     watch,
   } from 'vue';
@@ -149,6 +151,7 @@
   const editingField = ref<string | null>(null);
   // 标记是否正在程序化添加字段（用于防止 searchModel watch 竞态时误清空 editingField）
   const isAddingField = ref(false);
+  let clearAddingFieldTimer: ReturnType<typeof setTimeout> | null = null;
   // 选项缓存（供 select 子组件复用）
   const optionsCache = ref<Record<string, Array<Record<string, any>>>>({});
   // 事件字段组件引用
@@ -261,13 +264,19 @@
   };
 
   // 外部调用：让指定风险字段进入编辑态
-  const startEditField = (fieldName: string) => {
+  const startEditField = async (fieldName: string) => {
+    if (clearAddingFieldTimer) {
+      clearTimeout(clearAddingFieldTimer);
+      clearAddingFieldTimer = null;
+    }
     isAddingField.value = true;
+    await nextTick();
     editingField.value = fieldName;
-    // 短暂延迟后清除标志，确保 searchModel 变化引起的 watch 已完成
-    setTimeout(() => {
+    // 发布环境 popover 动画和 searchModel 深度监听时序可能更慢，保留一个短保护窗口避免新下拉刚打开就被误清空
+    clearAddingFieldTimer = setTimeout(() => {
       isAddingField.value = false;
-    }, 100);
+      clearAddingFieldTimer = null;
+    }, 800);
     emit('startEdit');
   };
 
@@ -318,6 +327,12 @@
       }
     }
   }, { deep: true });
+
+  onBeforeUnmount(() => {
+    if (clearAddingFieldTimer) {
+      clearTimeout(clearAddingFieldTimer);
+    }
+  });
 </script>
 <style lang="postcss">
   .nl-condition-tags {
