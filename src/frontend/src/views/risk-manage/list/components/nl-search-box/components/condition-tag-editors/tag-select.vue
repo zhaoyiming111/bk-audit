@@ -289,12 +289,14 @@
   };
 
   // 组件挂载时预加载选项（确保非编辑态也能显示中文 label）
+  // 同时一次性注册 document mousedown 监听器（捕获阶段），消除动态 setTimeout 绑定导致的竞态闪屏
   onMounted(() => {
     loadOptions();
+    document.addEventListener('mousedown', handleDocumentMousedown, true);
   });
 
-  // 监听编辑态切换，管理 document mousedown 事件和 popover 显示
-  // 使用 mousedown 捕获阶段同步绑定（不加 setTimeout），消除延迟窗口导致的闪屏竞态条件
+  // 监听编辑态切换，仅更新 ignoreCloseBefore 防抖标记和本地状态
+  // 不再动态增删 document 事件监听器（已在 onMounted 中常驻注册）
   watch(() => props.isEditing, (val) => {
     isShow.value = val;
     if (val) {
@@ -302,11 +304,6 @@
       localValue.value = _.cloneDeep(props.tag.value) || [];
       searchKey.value = '';
       loadOptions();
-      setTimeout(() => {
-        document.addEventListener('mousedown', handleDocumentMousedown, true);
-      });
-    } else {
-      document.removeEventListener('mousedown', handleDocumentMousedown, true);
     }
   });
 
