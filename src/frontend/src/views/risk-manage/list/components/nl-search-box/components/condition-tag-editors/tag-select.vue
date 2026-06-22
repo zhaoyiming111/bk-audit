@@ -24,7 +24,6 @@
     trigger="manual"
     @after-hidden="handlePopoverHidden">
     <div
-      ref="tagRef"
       class="condition-tag-item"
       :class="{ 'is-editing': isShow }"
       @click.stop="handleTagClick">
@@ -130,7 +129,6 @@
   const options = ref<Array<Record<string, any>>>([]);
   const loading = ref(false);
   const searchKey = ref('');
-  const tagRef = ref<HTMLElement>();
   const popoverRef = ref();
   // 点击打开下拉框后，短暂忽略 handleClickOutside，避免 popover 尚未渲染导致误判为点击外部
   const ignoreCloseUntil = ref(0);
@@ -248,25 +246,16 @@
     if (!isShow.value) return;
     // 打开后立即忽略一段时间，等待 popover 内容渲染到 DOM
     if (Date.now() < ignoreCloseUntil.value) return;
-    // 如果是程序化打开的下拉框，需要额外检查：只有当点击确实在外部时才关闭
+    // 检查是否点击在 popover 触发区域内（如果是，由 @click.stop 处理切换，不在这里关闭）
+    const triggerEl = popoverRef.value?.$el || popoverRef.value;
+    if (triggerEl && triggerEl.contains(e.target as Node)) return;
+    // 检查是否点击在 popover 弹出层内容区域内（teleport 到 body 的部分）
+    const popoverContent = (e.target as HTMLElement)?.closest?.('.bk-popover.bk-pop2-content');
+    if (popoverContent) return;
+    // 如果是程序化打开的下拉框，清除标记后即可关闭
     if (isProgrammaticOpen.value) {
-      const target = e.target as HTMLElement;
-      // 检查是否点击在 popover 弹出层内容区域内
-      const popoverContent = target?.closest?.('.bk-popover.bk-pop2-content');
-      if (popoverContent) return;
-      // 检查是否点击在标签自身内部
-      const triggerEl = tagRef.value;
-      if (triggerEl && triggerEl.contains(target)) return;
-      // 程序化打开后，第一次有效的外部点击才关闭，之后恢复正常逻辑
       isProgrammaticOpen.value = false;
     }
-    const target = e.target as HTMLElement;
-    // 点击标签自身内部 → 由 handleTagClick 处理切换，不在这里关闭
-    const triggerEl = tagRef.value;
-    if (triggerEl && triggerEl.contains(target)) return;
-    // 检查是否点击在 popover 弹出层内容区域内（teleport 到 body 的部分）
-    const popoverContent = target?.closest?.('.bk-popover.bk-pop2-content');
-    if (popoverContent) return;
     // 其他区域 → 关闭
     emit('finishEdit');
   };
