@@ -173,128 +173,6 @@
         </template>
         <template v-else-if="curNavName === 'nweSystemManage'">
           <system-manage-sidebar />
-          <!-- <div class="system-select">
-            <bk-select
-              v-model="systemId"
-              auto-focus
-              class="bk-select"
-              :clearable="false"
-              filterable
-              :popover-options="{
-                extCls: 'system-select-popover',
-                width: '320px'
-              }"
-              :search-with-pinyin="false"
-              @change="handleSystemChange"
-              @toggle="handleSelectToggle">
-              <bk-option
-                v-for="item in projectList"
-                :id="item.id"
-                :key="item.id"
-                :disabled="!(item.permission.view_system)"
-                :name="`${item.name}(${item.id})`">
-                <div
-                  class="popover"
-                  :style="item.permission.view_system ? `color: #C4C6CC;` : `color: #70737A;`">
-                  <div style="display: flex;">
-                    <tooltips
-                      v-if="isSelectOpen"
-                      :data="`${item.name}(${item.id})`"
-                      style="max-width: 200px;"
-                      theme="light" />
-                    <bk-popover
-                      v-if="item.system_status === 'incomplete'"
-                      :content="contentText(item.system_stage)"
-                      placement="top"
-                      theme="light">
-                      <bk-tag
-                        size="small"
-                        style="margin-left: 8px;"
-                        theme="warning"
-                        type="filled">
-                        {{ t('待完善') }}
-                      </bk-tag>
-                    </bk-popover>
-                    <bk-tag
-                      v-if="item.system_status === 'abnormal'"
-                      size="small"
-                      style="margin-left: 8px;"
-                      theme="danger"
-                      type="filled">
-                      {{ t('数据异常') }}
-                    </bk-tag>
-                  </div>
-                  <div>
-                    <span v-if="item.permission.view_system">
-                      <img
-                        v-if="item.favorite"
-                        class="pentagram-fill"
-                        src="@images/pentagram-fill.svg"
-                        @click.stop="handlerFavorite(item,false)">
-                      <img
-                        v-if="!(item.favorite)"
-                        class="pentagram-fill"
-                        src="@images/pentagram.svg"
-                        style="color: #4d4f56;"
-                        @click.stop="handlerFavorite(item,true)">
-                    </span>
-                    <span v-else>
-                      <auth-component
-                        action-id="view_system"
-                        :permission="item.permission.view_system"
-                        :resource="item.id"
-                        style="cursor: pointer;">
-                        <img
-                          v-if="!(item.permission.view_system)"
-                          class="pentagram-fill"
-                          src="@images/lock-1.svg">
-                      </auth-component>
-                    </span>
-                  </div>
-                </div>
-              </bk-option>
-
-              <template #extension>
-                <bk-button
-                  class="custom-extension"
-                  :disabled="!permissionCreateSystem"
-                  @click="handleRouterChange('systemAccess')">
-                  <audit-icon
-                    class="custom-extension-icon"
-                    type="add" />
-                  <span
-                    v-if="permissionCreateSystem"
-                    class="extension-text"
-                    style="color: #c4c6cc;">{{ t('接入新系统') }}</span>
-                  <bk-popover
-                    v-else
-                    :content="t('暂无权限')"
-                    placement="top"
-                    theme="light">
-                    <span
-                      class="extension-text"
-                      style="color: #c4c6cc;">{{ t('接入新系统') }}</span>
-                  </bk-popover>
-                </bk-button>
-              </template>
-            </bk-select>
-          </div>
-          <template v-if="route.meta.isGroup">
-            <div
-              v-for="item in route.meta.sideMenus as unknown as SideMenuItem[]"
-              :key="item.pathName"
-              class="group">
-              <audit-menu-item
-                :index="item.pathName"
-                is-self-router-change
-                @self-router-change="selfRouterChange(item)">
-                <audit-icon
-                  class="menu-item-icon"
-                  :type="item?.icon" />
-                {{ t(item.title) }}
-              </audit-menu-item>
-            </div>
-          </template> -->
         </template>
         <template v-else-if="curNavName === 'platformManage'">
           <platform-sidebar />
@@ -317,12 +195,6 @@
     type Ref,
     ref,
     watch  } from 'vue';
-  // interface SideMenuItem {
-  //   pathName: string;
-  //   icon: string;
-  //   title: string;
-  //   groupName: string
-  // }
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -332,7 +204,6 @@
   import IamManageService from '@service/iam-manage';
   import MetaManageService from '@service/meta-manage';
 
-  // import ConfigModel from '@model/root/config';
   import useEventBus from '@hooks/use-event-bus';
   import useFeature from '@hooks/use-feature';
   import usePlatformConfig from '@hooks/use-platform-config';
@@ -342,7 +213,6 @@
   import AuditMenuItemGroup from '@components/audit-menu/item-group.vue';
   import AuditNavigation from '@components/audit-navigation/index.vue';
 
-  // import Tooltips from '@components/show-tooltips-text/index.vue';
   import systemHeaderTips from '@views/new-system-manage/system-info/components/header-tips.vue';
 
   import PlatformSidebar from '@/components/statement-sidebar/platfrom.vue';
@@ -364,11 +234,6 @@
     priority_index?: number;
     favorite_created_at?: string | null;
   }
-  // interface Props {
-  //   configData: ConfigModel,
-  // }
-
-  // defineProps<Props>();
 
   const router = useRouter();
   const route = useRoute();
@@ -398,38 +263,9 @@
     }
   } catch { /* ignore */ }
   const menuData = ref<Array<MenuDataType>>([]);
-  // const systemId = ref<string | null>(null);
-  // 项目列表
-  // interface SystemItem {
-  //   id: string;
-  //   name: string;
-  //   permission: {
-  //     view_system: boolean;
-  //   };
-  //   permission_type: 'simple' | 'complex';
-  //   system_status: 'pending' | 'incomplete' | 'abnormal' | 'normal';
-  //   system_stage?: 'pending' | 'permission_model' | 'collector' | 'completed';
-  //   favorite: boolean;
-  // }
-
-  // const projectList = ref<SystemItem[]>([]);
-  // const permissionCreateSystem = ref(false);
   // 系统列表是否为空（用于决定跳转引导页还是列表页）
   const isSystemListEmpty = ref(true);
 
-  // const contentText = (stage: string | undefined) => {
-  //   if (stage === 'permission_model') {
-  //     return t('系统尚未完成确实模型配置，请继续设置');
-  //   } if (stage === 'collector') {
-  //     return t('系统尚未完成日志数据上报，请继续上报');
-  //   }
-  //   return '';
-  // };
-  // const isSelectOpen = ref(false);
-
-  // const handleSelectToggle = (val: boolean) => {
-  //   isSelectOpen.value = val;
-  // };
   // 计算属性根据 userRole 计算sceneConfigRouterName
   const sceneConfigRouterName = computed(() => {
     if (userRole.includes('saas_admin') || userRole.includes('scene_admin')) { // 管理员 和 场景管理员
@@ -443,17 +279,6 @@
     }
     return 'landingPage';
   });
-  // // 获取新建权限
-  // useRequest(IamManageService.check, {
-  //   defaultParams: {
-  //     action_ids: 'create_system',
-  //   },
-  //   defaultValue: {},
-  //   manual: true,
-  //   onSuccess: (data) => {
-  //     permissionCreateSystem.value = data.create_system;
-  //   },
-  // });
 
   // 获取系统列表，判断是否为空以决定跳转目标
   useRequest(MetaManageService.fetchSystemList, {
@@ -480,41 +305,6 @@
       hasAllRiskPermission.value = data.list_risk_v2 || false;
     },
   });
-
-  // // 检查平台管理权限
-  // const hasPlatformManagePermission = ref(false);
-  // useRequest(IamManageService.check, {
-  //   defaultParams: {
-  //     action_ids: 'manage_platform',
-  //   },
-  //   defaultValue: {},
-  //   manual: true,
-  //   onSuccess: (data) => {
-  //     hasPlatformManagePermission.value = data.manage_platform || false;
-  //   },
-  // });
-
-  // const {
-  //   run: fetchSystemWithAction,
-  // } = useRequest(MetaManageService.fetchSystemWithAction, {
-  //   defaultValue: [],
-  //   onSuccess: (data: any[]) => {
-  //     projectList.value = data;
-  //     if (route.params.id) {
-  //       systemId.value = route.params.id as string;
-  //     } else {
-  //       systemId.value = sessionStorage.getItem('systemProjectId') || data[0].id;
-  //       if (route.name === 'systemInfo') {
-  //         router.push({
-  //           name: 'systemInfo',
-  //           params: {
-  //             id: systemId.value,
-  //           },
-  //         });
-  //       }
-  //     }
-  //   },
-  // });
 
   on('statement-menuData', (data) => {
     menuData.value = data as Array<MenuDataType>;
@@ -558,7 +348,6 @@
       return;
     }
     if (routerName === 'systemAccess') {
-      // sessionStorage.setItem('systemProjectId', systemId.value || '');
       const routePath = router.resolve({ name: routerName }).href;
       window.open(routePath, '_blank');
       return;
@@ -568,57 +357,6 @@
     });
   };
 
-  // // 系统切换
-  // const handleSystemChange = (value: string) => {
-  //   // 找到对应选中item
-  //   const project = projectList.value.find(item => item.id === value);
-  //   if (!project) {
-  //     return;
-  //   }
-  //   // 在route.meta中添加systemId
-  //   sessionStorage.setItem('systemProjectId', value);
-  //   router.push({
-  //     name: 'systemInfo',
-  //     params: {
-  //       id: value,
-  //     },
-  //     query: {
-  //       type: project.permission_type,
-  //     },
-  //   });
-  // };
-
-  // // 更新系统收藏
-  // const {
-  //   run: fetchSystemAuditFavoriteUpdate,
-  // } = useRequest(MetaManageService.fetchSystemAuditFavoriteUpdate, {
-  //   defaultValue: {},
-  // });
-  // const selfRouterChange = (item: SideMenuItem) => {
-  //   router.push({
-  //     name: item.pathName,
-  //     params: {
-  //       id: systemId.value,
-  //     },
-  //   });
-  // };
-  // // 系统收藏
-  // const handlerFavorite = (item: Record<string, any>, val: boolean) => {
-  //   fetchSystemAuditFavoriteUpdate({
-  //     system_id: item.id,
-  //     favorite: val,
-  //   }).then(() => {
-  //     projectList.value = projectList.value.map((i) => {
-  //       if (i.id === item.id) {
-  //         return {
-  //           ...i,
-  //           favorite: val,
-  //         };
-  //       }
-  //       return i;
-  //     });
-  //   });
-  // };
   watch(route, () => {
     curNavName.value = route.meta.navName as string;
     // 切换菜单项时同步更新 descriptionRef
@@ -651,13 +389,6 @@
 
 
   onMounted(() => {
-    // fetchSystemWithAction({
-    //   sort_keys: 'favorite,permission',
-    //   action_ids: 'view_system',
-    //   with_favorite: true,
-    //   with_system_status: true,
-    //   audit_status__in: 'accessed',
-    // });
   }),
   onBeforeUnmount(() => {
     off('statement-menuData');
@@ -689,92 +420,6 @@
 
     .main-navigation-nav.active {
       color: #fff;
-    }
-  }
-
-  .system-select {
-    width: 90%;
-    margin-top: 10px;
-    margin-left: 5%;
-
-    .bk-input {
-      border: none;
-      box-shadow: none;
-
-      .bk-input--text {
-        color: #979ba5;
-        background-color: #40495e;
-      }
-    }
-  }
-}
-
-.system-select-popover.bk-popover.bk-pop2-content[data-theme^='light'] {
-  color: #979ba5;
-  background-color: #182233;
-  border-color: #182233;
-  box-shadow: none;
-
-  .bk-select-content-wrapper {
-    .bk-select-search-wrapper {
-      border-bottom: 1px solid #3c4558;
-
-      .bk-select-search-input {
-        color: #c4c6cc;
-        background-color: #182233;
-      }
-    }
-  }
-
-  .bk-select-content {
-    .bk-select-option.is-hover {
-      background-color: #2d3542;
-    }
-
-    .is-selected:not(.is-checkbox) {
-      background-color: #294066 !important;
-    }
-
-    .popover {
-      position: relative;
-      display: flex;
-      width: 100%;
-      align-items: center;  /* 垂直居中 */
-      justify-content: space-between;  /* 两端对齐 */
-
-      .pentagram-fill {
-        width: 14px;
-        height: 14px;
-        margin-left: 8px;  /* 添加左边距 */
-        cursor: pointer;
-      }
-    }
-
-    .bk-select-extension {
-      border: none;
-
-      .custom-extension {
-        display: flex;
-        width: 100%;
-        height: 100%;
-        padding: 0 10px;
-        font-size: 12px;
-        background-color: #28354d;
-        align-items: center;  /* 垂直居中 */
-        justify-content: center;  /* 水平居中 */
-        gap: 4px;  /* 图标和文字间距 */
-        border: none;
-        border-radius: 0;
-
-        .custom-extension-icon {
-          padding: 2px;
-          margin-right: 10px;
-          font-size: 8px;
-          color: #c4c6cc;
-          border: 1px solid #c4c6cc;
-          border-radius: 50%;
-        }
-      }
     }
   }
 }
