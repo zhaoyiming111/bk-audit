@@ -749,6 +749,10 @@
   // ========================
   // 添加风险字段条件（已添加的字段不会出现在下拉列表中，因此仅做添加）
   const handleAddField = async (fieldName: string, config: IFieldConfig) => {
+    // 提前通知 condition-tags 准备添加字段，设置 isAddingField 标志
+    // 防止 searchModel watch 竞态时误清空 editingField 导致下拉框闪屏
+    conditionTagsRef.value?.prepareAddField?.();
+
     // 添加默认空值
     let defaultValue: any = '';
     if (config.type === 'select') {
