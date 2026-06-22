@@ -263,6 +263,15 @@
     emit('updateEventValue', id, value);
   };
 
+  // 外部调用：准备添加字段，提前设置 isAddingField 标志，防止 watch 误清空 editingField
+  const prepareAddField = () => {
+    if (clearAddingFieldTimer) {
+      clearTimeout(clearAddingFieldTimer);
+      clearAddingFieldTimer = null;
+    }
+    isAddingField.value = true;
+  };
+
   // 外部调用：让指定风险字段进入编辑态
   const startEditField = async (fieldName: string) => {
     if (clearAddingFieldTimer) {
@@ -288,6 +297,7 @@
   defineExpose({
     startEditField,
     startEditEventField,
+    prepareAddField,
   });
 
   // ========================
