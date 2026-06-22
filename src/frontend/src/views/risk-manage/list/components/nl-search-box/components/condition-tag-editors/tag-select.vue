@@ -134,6 +134,8 @@
   const popoverRef = ref();
   // 点击打开下拉框后，短暂忽略 handleClickOutside，避免 popover 尚未渲染导致误判为点击外部
   const ignoreCloseUntil = ref(0);
+  // 标记是否正在程序化打开（从添加条件选择条件时触发），需要更长的保护时间
+  const isProgrammaticOpen = ref(false);
 
   const valName = computed(() => props.tag.config.valName || 'id');
   const labelName = computed(() => props.tag.config.labelName || 'name');
@@ -233,6 +235,8 @@
       // 打开下拉框后，在接下来 300ms 内忽略 handleClickOutside 的判断
       // 避免 popover 内容尚未渲染到 DOM 导致误判为点击外部而立即关闭
       ignoreCloseUntil.value = Date.now() + 300;
+      // 用户点击打开时，清除程序化打开标记
+      isProgrammaticOpen.value = false;
       emit('startEdit', props.tag.fieldName);
     } else {
       emit('finishEdit');
@@ -244,6 +248,18 @@
     if (!isShow.value) return;
     // 打开后立即忽略一段时间，等待 popover 内容渲染到 DOM
     if (Date.now() < ignoreCloseUntil.value) return;
+    // 如果是程序化打开的下拉框，需要额外检查：只有当点击确实在外部时才关闭
+    if (isProgrammaticOpen.value) {
+      const target = e.target as HTMLElement;
+      // 检查是否点击在 popover 弹出层内容区域内
+      const popoverContent = target?.closest?.('.bk-popover.bk-pop2-content');
+      if (popoverContent) return;
+      // 检查是否点击在标签自身内部
+      const triggerEl = tagRef.value;
+      if (triggerEl && triggerEl.contains(target)) return;
+      // 程序化打开后，第一次有效的外部点击才关闭，之后恢复正常逻辑
+      isProgrammaticOpen.value = false;
+    }
     const target = e.target as HTMLElement;
     // 点击标签自身内部 → 由 handleTagClick 处理切换，不在这里关闭
     const triggerEl = tagRef.value;
@@ -308,11 +324,16 @@
   watch(() => props.isEditing, (val) => {
     isShow.value = val;
     if (val) {
-      // 编程式打开下拉框时，也设置短暂忽略关闭窗口
-      ignoreCloseUntil.value = Date.now() + 300;
+      // 编程式打开下拉框时，设置更长的忽略关闭窗口时间（800ms，与 condition-tags 中的保护窗口一致）
+      ignoreCloseUntil.value = Date.now() + 800;
+      // 标记为程序化打开，需要在 handleClickOutside 中特殊处理
+      isProgrammaticOpen.value = true;
       localValue.value = _.cloneDeep(props.tag.value) || [];
       searchKey.value = '';
       loadOptions();
+    } else {
+      // 编辑态关闭时，清除程序化打开标记
+      isProgrammaticOpen.value = false;
     }
   });
 
