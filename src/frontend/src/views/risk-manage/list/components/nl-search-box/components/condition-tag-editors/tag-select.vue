@@ -27,7 +27,7 @@
       ref="tagRef"
       class="condition-tag-item"
       :class="{ 'is-editing': isShow }"
-      @click.stop="handleToggle">
+      @click.stop="isShow = !isShow">
       <span class="tag-label">{{ t(tag.label) }}：</span>
       <span
         v-bk-tooltips="{
@@ -46,8 +46,7 @@
     <template #content>
       <div
         class="nl-tag-editor-popover nl-tag-select-popover"
-        @click.stop
-        @mousedown.stop>
+        @click.stop>
         <div class="nl-tag-search-input">
           <audit-icon
             class="nl-tag-search-icon"
@@ -133,7 +132,6 @@
   const searchKey = ref('');
   const tagRef = ref<HTMLElement>();
   const popoverRef = ref();
-  let ignoreCloseBefore = 0;
 
   const valName = computed(() => props.tag.config.valName || 'id');
   const labelName = computed(() => props.tag.config.labelName || 'name');
@@ -216,32 +214,25 @@
   };
 
   // 切换编辑态
-  const handleToggle = () => {
-    if (isShow.value) {
-      if (Date.now() < ignoreCloseBefore) return;
-      emit('finishEdit');
-    } else {
-      emit('startEdit', props.tag.fieldName);
-    }
-  };
+  // const handleToggle = () => {
+  //   if (isShow.value) {
+  //     if (Date.now() < ignoreCloseBefore) return;
+  //     emit('finishEdit');
+  //   } else {
+  //     emit('startEdit', props.tag.fieldName);
+  //   }
+  // };
 
-  // 判断点击目标是否在下拉弹出层内部
-  const isInPopoverLayer = (target: Node) => {
-    const el = target as HTMLElement;
-    if (!el?.closest) return false;
-    return !!el.closest('.nl-tag-select-popover, .nl-tag-editor-popover, .tippy-box[data-theme~="nl-tag-popover"], .bk-popover.bk-pop2-content');
-  };
-
-  // 点击外部区域关闭下拉框（使用 mousedown + 捕获阶段，与 add-condition 保持一致，
-  // 避免 setTimeout 延迟绑定导致的竞态窗口中事件泄漏从而闪屏）
-  const handleDocumentMousedown = (e: Event) => {
+  // 点击外部区域关闭下拉框（使用 click 事件，参照 scene-system-selector 的实现）
+  const handleClickOutside = (e: Event) => {
     if (!isShow.value) return;
-    if (Date.now() < ignoreCloseBefore) return;
     const target = e.target as HTMLElement;
-    // 点击标签自身内部 → 由 handleToggle 处理
-    if (tagRef.value?.contains(target)) return;
-    // 点击弹出层内部 → 忽略
-    if (isInPopoverLayer(target)) return;
+    // 点击标签自身内部 → 由 @click.stop 处理切换，不在这里关闭
+    const triggerEl = tagRef.value;
+    if (triggerEl && triggerEl.contains(target)) return;
+    // 检查是否点击在 popover 弹出层内容区域内（teleport 到 body 的部分）
+    const popoverContent = target?.closest?.('.bk-popover.bk-pop2-content');
+    if (popoverContent) return;
     // 其他区域 → 关闭
     emit('finishEdit');
   };
@@ -289,18 +280,16 @@
   };
 
   // 组件挂载时预加载选项（确保非编辑态也能显示中文 label）
-  // 同时一次性注册 document mousedown 监听器（捕获阶段），消除动态 setTimeout 绑定导致的竞态闪屏
+  // 同时一次性注册 document click 监听器（捕获阶段）
   onMounted(() => {
     loadOptions();
-    document.addEventListener('mousedown', handleDocumentMousedown, true);
+    document.addEventListener('click', handleClickOutside, true);
   });
 
-  // 监听编辑态切换，仅更新 ignoreCloseBefore 防抖标记和本地状态
-  // 不再动态增删 document 事件监听器（已在 onMounted 中常驻注册）
+  // 监听编辑态切换
   watch(() => props.isEditing, (val) => {
     isShow.value = val;
     if (val) {
-      ignoreCloseBefore = Date.now() + 500;
       localValue.value = _.cloneDeep(props.tag.value) || [];
       searchKey.value = '';
       loadOptions();
@@ -308,7 +297,7 @@
   });
 
   onBeforeUnmount(() => {
-    document.removeEventListener('mousedown', handleDocumentMousedown, true);
+    document.removeEventListener('click', handleClickOutside, true);
   });
 </script>
 <style lang="postcss" scoped>
