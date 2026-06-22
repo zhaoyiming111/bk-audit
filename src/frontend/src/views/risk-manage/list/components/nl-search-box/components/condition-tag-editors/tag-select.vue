@@ -27,7 +27,7 @@
       ref="tagRef"
       class="condition-tag-item"
       :class="{ 'is-editing': isShow }"
-      @click.stop="isShow = !isShow">
+      @click.stop="handleTagClick">
       <span class="tag-label">{{ t(tag.label) }}：</span>
       <span
         v-bk-tooltips="{
@@ -132,6 +132,8 @@
   const searchKey = ref('');
   const tagRef = ref<HTMLElement>();
   const popoverRef = ref();
+  // 点击打开下拉框后，短暂忽略 handleClickOutside，避免 popover 尚未渲染导致误判为点击外部
+  const ignoreCloseUntil = ref(0);
 
   const valName = computed(() => props.tag.config.valName || 'id');
   const labelName = computed(() => props.tag.config.labelName || 'name');
@@ -223,11 +225,27 @@
   //   }
   // };
 
-  // 点击外部区域关闭下拉框（使用 click 事件，参照 scene-system-selector 的实现）
+  // 点击标签：切换下拉框显示状态，打开时设置短暂忽略关闭窗口
+  const handleTagClick = () => {
+    const next = !isShow.value;
+    isShow.value = next;
+    if (next) {
+      // 打开下拉框后，在接下来 300ms 内忽略 handleClickOutside 的判断
+      // 避免 popover 内容尚未渲染到 DOM 导致误判为点击外部而立即关闭
+      ignoreCloseUntil.value = Date.now() + 300;
+      emit('startEdit', props.tag.fieldName);
+    } else {
+      emit('finishEdit');
+    }
+  };
+
+  // 点击外部区域关闭下拉框
   const handleClickOutside = (e: Event) => {
     if (!isShow.value) return;
+    // 打开后立即忽略一段时间，等待 popover 内容渲染到 DOM
+    if (Date.now() < ignoreCloseUntil.value) return;
     const target = e.target as HTMLElement;
-    // 点击标签自身内部 → 由 @click.stop 处理切换，不在这里关闭
+    // 点击标签自身内部 → 由 handleTagClick 处理切换，不在这里关闭
     const triggerEl = tagRef.value;
     if (triggerEl && triggerEl.contains(target)) return;
     // 检查是否点击在 popover 弹出层内容区域内（teleport 到 body 的部分）
@@ -290,6 +308,8 @@
   watch(() => props.isEditing, (val) => {
     isShow.value = val;
     if (val) {
+      // 编程式打开下拉框时，也设置短暂忽略关闭窗口
+      ignoreCloseUntil.value = Date.now() + 300;
       localValue.value = _.cloneDeep(props.tag.value) || [];
       searchKey.value = '';
       loadOptions();
