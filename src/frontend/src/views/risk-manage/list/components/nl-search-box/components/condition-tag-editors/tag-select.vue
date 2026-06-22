@@ -27,7 +27,7 @@
       ref="tagRef"
       class="condition-tag-item"
       :class="{ 'is-editing': isShow }"
-      @click="handleToggle">
+      @click.stop="handleToggle">
       <span class="tag-label">{{ t(tag.label) }}：</span>
       <span
         v-bk-tooltips="{

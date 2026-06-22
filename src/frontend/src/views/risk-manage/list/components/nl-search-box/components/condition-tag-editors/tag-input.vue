@@ -23,7 +23,7 @@
     <template v-if="!isEditing">
       <div
         class="tag-view-content"
-        @click="handleStartEdit">
+        @click.stop="handleStartEdit">
         <span class="tag-label">{{ t(tag.label) }}：</span>
         <span
           v-bk-tooltips="{
